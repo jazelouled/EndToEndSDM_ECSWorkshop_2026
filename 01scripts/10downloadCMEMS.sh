@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
 # ============================================================
 # Download Copernicus data ONLY for tracking dates
 # Fin whale – Mediterranean
@@ -9,7 +9,7 @@ set -e
 # ----------------------------
 # BASE DIRECTORY
 # ----------------------------
-BASE_DIR="/Volumes/ADATA HD330/2026_FinWhale_RdeStephanis"
+BASE_DIR="/Volumes/ADATA HD330/ECS"
 DATES_FILE="${BASE_DIR}/tracking_dates2.txt"
 OUTDIR="${BASE_DIR}/envData"
 
