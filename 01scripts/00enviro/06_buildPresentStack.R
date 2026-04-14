@@ -8,6 +8,7 @@
 # Each daily stack will contain:
 # - static variables (same every day)
 # - dynamic variables (change every day)
+# - selected gradients (temperature and salinity only)
 #
 # EXAMPLE:
 # For a given day, one stack may contain:
@@ -15,6 +16,9 @@
 # - slope
 # - distance_to_coast
 # - sst
+# - sst_gradient
+# - so
+# - so_gradient
 # - chl
 #
 # WHY THIS STEP IS USEFUL:
@@ -47,13 +51,6 @@ message("Starting present-day environmental stack building...")
 # ============================================================
 # 2. DEFINE INPUT AND OUTPUT PATHS
 # ============================================================
-# Input:
-# - static layers
-# - daily dynamic layers
-#
-# Output:
-# - daily multilayer environmental stacks
-# ============================================================
 
 static_dir <- here(
   "00inputOutput", "00input", "01processedData", "00enviro",
@@ -83,9 +80,6 @@ if (!dir.exists(dynamic_dir)) {
 
 # ============================================================
 # 3. READ STATIC LAYERS
-# ============================================================
-# These layers do not change through time.
-# They will be added to every daily environmental stack.
 # ============================================================
 
 message("Reading static layers...")
@@ -123,9 +117,6 @@ message("  Loaded slope")
 # ------------------------------------------------------------
 # 3.3 Distance to coast
 # ------------------------------------------------------------
-# The file may have different possible names depending on the
-# previous script. We try the most likely one first.
-# ============================================================
 
 dist_file_1 <- file.path(static_dir, "distance_to_coast_wmed.tif")
 dist_file_2 <- file.path(static_dir, "dist_coast_wmed.tif")
@@ -147,15 +138,6 @@ message("  Loaded distance to coast")
 # ============================================================
 # 4. LIST ALL DAILY DYNAMIC FILES
 # ============================================================
-# These are the layers that vary through time, for example:
-# - sst_2015-02-15.tif
-# - chl_2015-02-15.tif
-#
-# We will parse:
-# - the variable name
-# - the date
-# from the file names.
-# ============================================================
 
 message("Listing daily dynamic layers...")
 
@@ -175,22 +157,6 @@ message("  Number of dynamic files found: ", length(dynamic_files))
 # ============================================================
 # 5. BUILD A LOOKUP TABLE FOR DYNAMIC FILES
 # ============================================================
-# We create a table with:
-# - full path
-# - file name
-# - variable name
-# - date
-#
-# Example:
-#   sst_2015-02-15.tif
-# becomes:
-#   variable = "sst"
-#   date     = "2015-02-15"
-#
-# IMPORTANT:
-# This assumes the file naming format is:
-#   variable_YYYY-MM-DD.tif
-# ============================================================
 
 dynamic_table <- data.frame(
   file = dynamic_files,
@@ -199,15 +165,16 @@ dynamic_table <- data.frame(
 
 dynamic_table$file_name <- basename(dynamic_table$file)
 
-# remove ".tif"
+# Remove ".tif"
 dynamic_table$file_stub <- str_remove(dynamic_table$file_name, "\\.tif$")
 
-# variable = everything before the final underscore + date
-# date     = final YYYY-MM-DD part
+# Extract date from file name
 dynamic_table$date <- str_extract(dynamic_table$file_stub, "\\d{4}-\\d{2}-\\d{2}$")
+
+# Extract variable name from file name
 dynamic_table$variable <- str_remove(dynamic_table$file_stub, "_\\d{4}-\\d{2}-\\d{2}$")
 
-# remove rows that do not match the expected pattern
+# Keep only valid rows
 dynamic_table <- dynamic_table[!is.na(dynamic_table$date), ]
 
 if (nrow(dynamic_table) == 0) {
@@ -220,9 +187,6 @@ message("Dynamic file table built successfully.")
 # ============================================================
 # 6. IDENTIFY ALL UNIQUE DATES
 # ============================================================
-# We now find all dates for which at least one dynamic layer exists.
-# For each date, we will attempt to build one environmental stack.
-# ============================================================
 
 all_dates <- sort(unique(dynamic_table$date))
 
@@ -231,13 +195,6 @@ message("Number of unique dates found: ", length(all_dates))
 
 # ============================================================
 # 7. LOOP THROUGH DATES AND BUILD ONE STACK PER DAY
-# ============================================================
-# For each date:
-# - find all dynamic layers for that date
-# - read them one by one
-# - assign the real variable name to each layer
-# - combine static + dynamic layers
-# - save the final daily stack
 # ============================================================
 
 for (i in seq_along(all_dates)) {
@@ -283,33 +240,87 @@ for (i in seq_along(all_dates)) {
     
     r <- rast(dynamic_file)
     
-    # In case a file contains more than one layer, keep the first
+    # If a file contains more than one layer, keep only the first
     if (nlyr(r) > 1) {
       r <- r[[1]]
     }
     
-    # Give the raster the real variable name
+    # Assign the real variable name
     names(r) <- dynamic_var
     
-    # Safety: resample if needed so it perfectly matches the static grid
+    # --------------------------------------------------------
+    # 7.3.1 Match geometry to the static template if needed
+    # --------------------------------------------------------
+    
     if (!compareGeom(r, bathymetry, stopOnError = FALSE)) {
       message("      Geometry differs from template -> resampling")
       r <- resample(r, bathymetry, method = "bilinear")
       r <- mask(r, bathymetry)
     }
     
-    # Add this dynamic layer to the daily stack
+    # --------------------------------------------------------
+    # 7.3.2 Add original dynamic layer
+    # --------------------------------------------------------
+    
     daily_stack <- c(daily_stack, r)
+    
+    # --------------------------------------------------------
+    # 7.3.3 Compute gradients ONLY for temperature and salinity
+    # --------------------------------------------------------
+    # We identify temperature-like and salinity-like variable names.
+    #
+    # Temperature examples:
+    # - temperature
+    # - temp
+    # - sst
+    # - thetao
+    #
+    # Salinity examples:
+    # - salinity
+    # - sal
+    # - so
+    # --------------------------------------------------------
+    
+    # ----- TEMPERATURE GRADIENT -----
+    if (dynamic_var %in% c("temperature", "temp", "sst", "thetao")) {
+      
+      message("      Computing temperature gradient")
+      
+      gradient_r <- terrain(
+        r,
+        v = "slope",
+        unit = "radians",
+        neighbors = 8
+      )
+      
+      gradient_r <- mask(gradient_r, bathymetry)
+      names(gradient_r) <- "temperature_gradient"
+      
+      daily_stack <- c(daily_stack, gradient_r)
+    }
+    
+    # ----- SALINITY GRADIENT -----
+    if (dynamic_var %in% c("salinity", "sal", "so")) {
+      
+      message("      Computing salinity gradient")
+      
+      gradient_r <- terrain(
+        r,
+        v = "slope",
+        unit = "radians",
+        neighbors = 8
+      )
+      
+      gradient_r <- mask(gradient_r, bathymetry)
+      names(gradient_r) <- "salinity_gradient"
+      
+      daily_stack <- c(daily_stack, gradient_r)
+    }
   }
   
   # ----------------------------------------------------------
   # 7.4 Save the daily stack
   # ----------------------------------------------------------
-  # We save one multilayer raster per day.
-  #
-  # File name example:
-  #   present_stack_2015-02-15.tif
-  # ==========================================================
   
   out_file <- file.path(
     out_dir,
@@ -333,5 +344,6 @@ for (i in seq_along(all_dates)) {
 
 message("====================================")
 message("Present-day environmental stacks created successfully.")
+message("Temperature and salinity gradients were added when available.")
 message("Output directory: ", out_dir)
 message("====================================")
