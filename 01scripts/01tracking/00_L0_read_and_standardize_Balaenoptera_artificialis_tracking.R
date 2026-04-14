@@ -78,14 +78,9 @@ message("Starting L0 standardization workflow for Balaenoptera artificialis...")
 # ============================================================
 
 path_tracking <- here(
-  "00inputOutput", "00input", "00rawData", "01tracking",
-  "simulated_tracking_final.csv"
-)
+  "00inputOutput", "00input", "00rawData", "01tracking", "simulated_tracking_final.csv")
 
-out_dir <- here(
-  "00inputOutput", "00input", "01processedData", "01tracking",
-  "00L0_data"
-)
+out_dir <- here("00inputOutput", "00input", "01processedData", "01tracking", "00L0_data")
 
 out_plots_dir <- file.path(out_dir, "plots_individuals")
 
