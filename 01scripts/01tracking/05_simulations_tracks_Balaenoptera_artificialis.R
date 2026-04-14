@@ -67,11 +67,8 @@ message("Starting pseudo-absence simulation workflow for Balaenoptera artificial
 # - one QC plot per segment
 # ============================================================
 
-indir <- here(
-  "00inputOutput", "00input", "01processedData", "01tracking", "04L2_ssm_behaviour")
-
-outdir <- here(
-  "00inputOutput", "00input", "01processedData", "01tracking", "05simulations_Behaviour")
+indir <- here("00inputOutput", "00input", "01processedData", "01tracking", "04L2_ssm_behaviour")
+outdir <- here("00inputOutput", "00input", "01processedData", "01tracking", "05simulations_Behaviour")
 
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 

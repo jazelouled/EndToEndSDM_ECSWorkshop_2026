@@ -55,19 +55,14 @@ message("Starting L1 space-time split workflow for Balaenoptera artificialis..."
 # - one file per individual containing split information
 # ============================================================
 
-indir <- here(
-  "00inputOutput", "00input", "01processedData", "01tracking", "02L1_douglas", "L1_filtered")
-
-outdir <- here(
-  "00inputOutput", "00input", "01processedData", "01tracking", "03L1_spaceTimeSplit")
-
+indir <- here("00inputOutput", "00input", "01processedData", "01tracking", "02L1_douglas", "L1_filtered")
+outdir <- here("00inputOutput", "00input", "01processedData", "01tracking", "03L1_spaceTimeSplit")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 # Safety check
 if (!dir.exists(indir)) {
   stop("Input directory not found: ", indir)
 }
-
 
 # ============================================================
 # 3. DEFINE SPLITTING THRESHOLDS
