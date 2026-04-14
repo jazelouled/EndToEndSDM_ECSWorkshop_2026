@@ -68,14 +68,10 @@ message("Starting pseudo-absence simulation workflow for Balaenoptera artificial
 # ============================================================
 
 indir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "04L2_ssm_behaviour"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "04L2_ssm_behaviour")
 
 outdir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "05simulations_Behaviour"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "05simulations_Behaviour")
 
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 

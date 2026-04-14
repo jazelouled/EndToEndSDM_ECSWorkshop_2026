@@ -49,7 +49,7 @@ path_mask <- here(
 )
 
 out_base <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking", "02L1_douglas"
+  "00inputOutput", "00input", "01processedData", "01tracking", "02L1_douglas"
 )
 
 out_L1_dir      <- file.path(out_base, "L1_filtered")

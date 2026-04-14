@@ -73,14 +73,10 @@ message("Starting gridded balanced presence–absence workflow for Balaenoptera 
 # ============================================================
 
 sim_data <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "05simulations_Behaviour"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "05simulations_Behaviour")
 
 outdir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "06PresAbs_grid"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "06PresAbs_grid")
 
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 

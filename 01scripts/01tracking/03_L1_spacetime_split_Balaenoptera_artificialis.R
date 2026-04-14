@@ -56,14 +56,10 @@ message("Starting L1 space-time split workflow for Balaenoptera artificialis..."
 # ============================================================
 
 indir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "02L1_douglas", "L1_filtered"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "02L1_douglas", "L1_filtered")
 
 outdir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "03L1_spaceTimeSplit"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "03L1_spaceTimeSplit")
 
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 

@@ -64,14 +64,10 @@ message("Starting L2 SSM workflow for Balaenoptera artificialis...")
 # ============================================================
 
 indir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "03L1_spaceTimeSplit"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "03L1_spaceTimeSplit")
 
 outdir <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
-  "04L2_ssm_behaviour"
-)
+  "00inputOutput", "00input", "01processedData", "01tracking", "04L2_ssm_behaviour")
 
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
