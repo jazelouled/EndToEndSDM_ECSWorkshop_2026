@@ -39,14 +39,82 @@ Place the files inside:
 ## Project structure
 
 ```
-01scripts/
-├── 00enviro/         Environmental data processing
-├── 01tracking/       Tracking data processing
-└── 02habitatModel/   Modelling and predictions
-
-00inputOutput/
-├── 00input/          Raw and processed data
-└── 01output/         Results (figures, rasters, models, tables)
+EndToEndSDM_ECSWorkshop_2026/
+│
+├── 00README.md
+├── EndToEndSDM_Workshop_Presentation.pptx
+│
+├── 00inputOutput/
+│   ├── 00input/
+│   │   ├── 00rawData/
+│   │   │   ├── 00enviro/
+│   │   │   │   ├── 00StaticLayers/
+│   │   │   │   ├── 01CMEMS/
+│   │   │   │   ├── 02CMIP6/
+│   │   │   │   └── oceanmask.tif
+│   │   │   │
+│   │   │   └── 01tracking/
+│   │   │       ├── simulated_tracking_final.csv
+│   │   │       └── 00auxiliaryFiles/
+│   │   │
+│   │   └── 01processedData/
+│   │       ├── 00enviro/
+│   │       │   ├── 00staticLayers/
+│   │       │   ├── 01dynamicLayers/
+│   │       │   ├── 02presentStacks/
+│   │       │   └── 03futureStacks/
+│   │       │
+│   │       └── 00tracking/
+│   │           ├── 00L0_data/
+│   │           ├── 02L1_douglas/
+│   │           │   ├── L1_filtered/
+│   │           │   ├── L1_withFlags/
+│   │           │   └── plots/
+│   │           │
+│   │           ├── 03L1_spaceTimeSplit/
+│   │           ├── 04L2_ssm_behaviour/
+│   │           ├── 05simulations_Behaviour/
+│   │           └── 06PresAbs_grid/
+│   │
+│   └── 01output/
+│       ├── 00figures/
+│       ├── 01rasters/
+│       ├── 02models/
+│       ├── 03tables/
+│       └── 04logs/
+│
+├── 01scripts/
+│   ├── 00_main.R
+│   │
+│   ├── 00enviro/
+│   │   ├── 00_oceanMask.R
+│   │   ├── 01_downloadCMEMS.R
+│   │   ├── 01_downloadCMEMS.sh
+│   │   ├── 02_downloadCMIP6.R
+│   │   ├── 03_prepareStaticLayers.R
+│   │   ├── 04_prepareCMEMS.R
+│   │   ├── 05_prepareCMIP6.R
+│   │   ├── 06_buildPresentStack.R
+│   │   └── 07_buildFutureStack.R
+│   │
+│   ├── 01tracking/
+│   │   ├── 00_L0_read_and_standardize_Balaenoptera_artificialis_tracking.R
+│   │   ├── 01_L0_spaceTime_histograms_Balaenoptera_artificialis.R
+│   │   ├── 02_L1_douglas_speed_filter_Balaenoptera_artificialis_from_L0.R
+│   │   ├── 03_L1_spacetime_split_Balaenoptera_artificialis.R
+│   │   ├── 04_L2_ssm_by_segment_Balaenoptera_artificialis_QC_routePath.R
+│   │   ├── 05_simulations_tracks_Balaenoptera_artificialis.R
+│   │   └── 06_presAbs_grid_balancing_Balaenoptera_artificialis.R
+│   │
+│   └── 02habitatModel/
+│       ├── 41fitRF.R
+│       ├── 42fitGBM.R
+│       ├── 43evaluateModels.R
+│       ├── 50predictPresent.R
+│       ├── 51predictFuture.R
+│       ├── 52mapPredictions.R
+│       ├── 53mapChanges.R
+│       └── 99sessionInfo.R
 ```
 
 
