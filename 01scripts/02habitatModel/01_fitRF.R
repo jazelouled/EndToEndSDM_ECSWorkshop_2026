@@ -37,6 +37,7 @@ suppressPackageStartupMessages({
   library(raster)
   library(stringr)
   library(here)
+  library(randomForest)
 })
 
 set.seed(123)
