@@ -80,7 +80,7 @@ oceanmask <- terra::rast(path_mask)
 # IMPORTANT:
 # Adjust if your raster uses the opposite coding.
 # Here we assume ocean = 0
-ocean_values <- c(0)
+ocean_values <- c(1)
 
 # ============================================================
 # Read all L0 files
