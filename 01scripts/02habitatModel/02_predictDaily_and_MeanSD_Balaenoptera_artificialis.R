@@ -30,6 +30,7 @@ suppressPackageStartupMessages({
   library(dplyr)
   library(rnaturalearth)
   library(rnaturalearthdata)
+  library(sf)
 })
 
 message("Starting daily predictions + mean/SD workflow...")
@@ -207,7 +208,21 @@ message("Saved SD raster: ", basename(sd_file))
 
 message("Preparing ggplot maps...")
 
-world <- ne_countries(scale = "medium", returnclass = "sf")
+world <- rnaturalearth::ne_countries(
+  scale = "medium",
+  returnclass = "sf"
+)
+
+bbox_vals <- as.vector(terra::ext(mean_rast))
+
+xmin <- bbox_vals[1]
+xmax <- bbox_vals[2]
+ymin <- bbox_vals[3]
+ymax <- bbox_vals[4]
+
+# TREURE BUFFER DE 5º
+xlim_vals <- c(xmin + 5, xmax - 4)
+ylim_vals <- c(ymin + 5, ymax)
 
 rast_to_df <- function(r, value_name) {
   df <- as.data.frame(r, xy = TRUE, na.rm = FALSE)
@@ -217,14 +232,6 @@ rast_to_df <- function(r, value_name) {
 
 mean_df <- rast_to_df(mean_rast, "value")
 sd_df   <- rast_to_df(sd_rast, "value")
-
-bbox_vals <- ext(mean_rast)
-xlim_vals <- c(bbox_vals[1], bbox_vals[2])
-ylim_vals <- c(bbox_vals[3], bbox_vals[4])
-
-world_crop <- suppressWarnings(
-  st_crop(world, xmin = xlim_vals[1], xmax = xlim_vals[2], ymin = ylim_vals[1], ymax = ylim_vals[2])
-)
 
 # ------------------------------------------------------------
 # 8. PLOT MEAN MAP
@@ -236,7 +243,7 @@ p_mean <- ggplot() +
     aes(x = x, y = y, fill = value)
   ) +
   geom_sf(
-    data = world_crop,
+    data = world,
     inherit.aes = FALSE,
     fill = "grey90",
     color = "grey35",
@@ -282,7 +289,7 @@ p_sd <- ggplot() +
     aes(x = x, y = y, fill = value)
   ) +
   geom_sf(
-    data = world_crop,
+    data = world,
     inherit.aes = FALSE,
     fill = "grey90",
     color = "grey35",
