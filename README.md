@@ -2,7 +2,9 @@
 
 This repository contains all the material needed to run an end-to-end Species Distribution Modelling (SDM) workflow, from raw tracking data to habitat suitability predictions.
 
-![Workshop logo](workshopLogo.png)
+<p align="center">
+  <img src="workshopLogo.png" width="50%">
+</p>
 
 The workshop guides participants through a complete pipeline:
 
