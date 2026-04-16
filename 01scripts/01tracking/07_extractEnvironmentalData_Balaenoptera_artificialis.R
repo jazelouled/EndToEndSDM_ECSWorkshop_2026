@@ -26,12 +26,11 @@
 # ============================================================
 
 suppressPackageStartupMessages({
-  library(raster)
+  library(terra)
   library(dplyr)
   library(lubridate)
   library(readr)
   library(here)
-  library(sp)
 })
 
 message("Starting environmental extraction workflow...")
@@ -42,7 +41,7 @@ message("Starting environmental extraction workflow...")
 # ============================================================
 
 presabs_file <- here(
-  "00inputOutput", "00input", "01processedData", "00tracking",
+  "00inputOutput", "00input", "01processedData", "01tracking",
   "06PresAbs_grid", "Balaenoptera_artificialis_PresAbs_grid_balanced.csv"
 )
 
@@ -145,12 +144,28 @@ message("Number of unique dates in presence-absence data: ", length(all_days))
 
 
 # ============================================================
-# 7. LOOP THROUGH DATES AND EXTRACT ENVIRONMENTAL DATA
+# 7. EXPECTED STACK VARIABLES
 # ============================================================
-# We do this sequentially:
-# - simpler
-# - easier to debug
-# - better for teaching
+
+stack_vars <- c(
+  "bathymetry",
+  "slope",
+  "distance_to_coast",
+  "mlotst",
+  "zos",
+  "thetao",
+  "thetao_gradient",
+  "so",
+  "so_gradient",
+  "uo",
+  "vo",
+  "chl",
+  "nppv"
+)
+
+
+# ============================================================
+# 8. LOOP THROUGH DATES AND EXTRACT ENVIRONMENTAL DATA
 # ============================================================
 
 results_list <- vector("list", length(all_days))
@@ -165,7 +180,7 @@ for (i in seq_along(all_days)) {
   df_day <- presAbs[presAbs$day == d, ]
   
   # ----------------------------------------------------------
-  # 7.1 Find the matching environmental stack
+  # 8.1 Find the matching environmental stack
   # ----------------------------------------------------------
   
   stack_path <- stack_table$file[stack_table$day == d]
@@ -175,36 +190,42 @@ for (i in seq_along(all_days)) {
     message("  Stack found: ", basename(stack_path))
     
     # --------------------------------------------------------
-    # 7.2 Load the environmental stack
+    # 8.2 Load the environmental stack with terra
     # --------------------------------------------------------
     
-    env_stack <- stack(stack_path)
+    env_stack <- terra::rast(stack_path)
     
-    message("  Number of layers in stack: ", nlayers(env_stack))
+    message("  Number of layers in stack: ", terra::nlyr(env_stack))
     message("  Layer names: ", paste(names(env_stack), collapse = ", "))
     
+    # Safety check
+    if (!all(stack_vars %in% names(env_stack))) {
+      warning("Stack does not contain all expected variables for date: ", d)
+      warning("Missing: ", paste(setdiff(stack_vars, names(env_stack)), collapse = ", "))
+    }
+    
     # --------------------------------------------------------
-    # 7.3 Convert points to SpatialPoints
+    # 8.3 Convert points to SpatVector
     # --------------------------------------------------------
     
-    coords <- df_day %>%
-      dplyr::select(lon, lat) %>%
-      as.data.frame()
+    coords <- as.data.frame(df_day[, c("lon", "lat")])
     
-    sp_points <- SpatialPoints(
+    pts <- terra::vect(
       coords,
-      proj4string = CRS(projection(env_stack))
+      geom = c("lon", "lat"),
+      crs = "EPSG:4326"
     )
     
     # --------------------------------------------------------
-    # 7.4 Extract environmental values
+    # 8.4 Extract environmental values
     # --------------------------------------------------------
     # We use a 15 km buffer and compute the mean value.
+    # terra::extract returns an ID column first, which we remove.
     # --------------------------------------------------------
     
-    extracted_vals <- raster::extract(
+    extracted_vals <- terra::extract(
       env_stack,
-      sp_points,
+      pts,
       buffer = 15000,
       fun = mean,
       na.rm = TRUE
@@ -212,8 +233,16 @@ for (i in seq_along(all_days)) {
     
     extracted_vals <- as.data.frame(extracted_vals)
     
+    # remove terra's ID column
+    if ("ID" %in% names(extracted_vals)) {
+      extracted_vals <- extracted_vals[, setdiff(names(extracted_vals), "ID"), drop = FALSE]
+    }
+    
+    # force same order and names as stack
+    extracted_vals <- extracted_vals[, names(env_stack), drop = FALSE]
+    
     # --------------------------------------------------------
-    # 7.5 Combine extracted values with the observations
+    # 8.5 Combine extracted values with the observations
     # --------------------------------------------------------
     
     df_day <- bind_cols(df_day, extracted_vals)
@@ -223,24 +252,12 @@ for (i in seq_along(all_days)) {
     warning("Missing environmental stack for date: ", d)
     
     # --------------------------------------------------------
-    # 7.6 If stack is missing, create NA columns
-    # --------------------------------------------------------
-    # These names match the current daily stack structure.
+    # 8.6 If stack is missing, create NA columns
     # --------------------------------------------------------
     
-    df_day$bathymetry <- NA
-    df_day$slope <- NA
-    df_day$distance_to_coast <- NA
-    df_day$mlotst <- NA
-    df_day$zos <- NA
-    df_day$thetao <- NA
-    df_day$thetao_gradient <- NA
-    df_day$so <- NA
-    df_day$so_gradient <- NA
-    df_day$uo <- NA
-    df_day$vo <- NA
-    df_day$chl <- NA
-    df_day$nppv <- NA
+    for (v in stack_vars) {
+      df_day[[v]] <- NA
+    }
   }
   
   results_list[[i]] <- df_day
@@ -248,7 +265,7 @@ for (i in seq_along(all_days)) {
 
 
 # ============================================================
-# 8. COMBINE ALL DAYS
+# 9. COMBINE ALL DAYS
 # ============================================================
 
 results_df <- bind_rows(results_list)
@@ -258,7 +275,7 @@ message("Final table columns: ", ncol(results_df))
 
 
 # ============================================================
-# 9. SAVE FINAL OUTPUT
+# 10. SAVE FINAL OUTPUT
 # ============================================================
 
 write_csv(results_df, out_file)
