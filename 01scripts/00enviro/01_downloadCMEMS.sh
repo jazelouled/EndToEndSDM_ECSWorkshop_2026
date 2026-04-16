@@ -18,13 +18,13 @@ export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
 # ----------------------------
 # BASE_DIR="/Users/jazelouled-cheikhbonan/Dropbox/2026_ECS_WorkshopSDM/EndToEndSDM_ECSWorkshop_2026"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BASE_DIR="$( realpath "${SCRIPT_DIR}/../../../.." )"
+BASE_DIR="$( realpath "${SCRIPT_DIR}/../.." )"
 echo "Using BASE_DIR:"
 echo "$BASE_DIR"
 
 DATES_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/tracking_dates.txt"
 BBOX_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/bbox_env.txt"
-OUTDIR="${BASE_DIR}/00inputOutput/00input/00rawData/01CMEMS"
+OUTDIR="${BASE_DIR}/00inputOutput/00input/00rawData/00enviro/01CMEMS"
 
 mkdir -p "${OUTDIR}"
 
