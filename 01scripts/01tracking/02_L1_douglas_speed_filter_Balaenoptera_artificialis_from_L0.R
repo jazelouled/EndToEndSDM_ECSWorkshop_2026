@@ -100,7 +100,7 @@ message("Reading L0 files...")
 
 L0_list <- files_L0 %>%
   set_names(basename(.)) %>%
-  map(~ read_csv(
+  purrr::map(~ read_csv(
     .x,
     show_col_types = FALSE,
     col_types = cols(
@@ -309,7 +309,7 @@ apply_douglas_speed_only_with_reasons <- function(df, vmax_kmh = 25, mask_rast, 
 message("Applying Douglas speed-only filter to all tags...")
 
 L1_withFlags_list <- L0_list %>%
-  map(~ apply_douglas_speed_only_with_reasons(
+  purrr::map(~ apply_douglas_speed_only_with_reasons(
     .x,
     vmax_kmh = vmax_kmh,
     mask_rast = oceanmask,
@@ -317,7 +317,7 @@ L1_withFlags_list <- L0_list %>%
   ))
 
 L1_filtered_list <- L1_withFlags_list %>%
-  map(~ filter(.x, douglas_keep))
+  purrr::map(~ filter(.x, douglas_keep))
 
 # ============================================================
 # Save outputs

@@ -308,7 +308,7 @@ for (i in seq_along(split_list)) {
         indata,
         model = "mp",
         time.step = dt_ssm,
-        map = list(rho_o = factor(NA)),
+        purrr::map = list(rho_o = factor(NA)),
         control = ssm_control(verbose = 0)
       ),
       silent = TRUE
