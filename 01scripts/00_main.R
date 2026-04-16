@@ -26,6 +26,29 @@ message("Project root detected by here(): ", here::here())
 
 
 # ============================================================
+# CREATE RAW DATA FOLDERS (ENTRY POINT)
+# ============================================================
+
+suppressPackageStartupMessages({
+  library(here)
+})
+
+message("Creating raw data input folders...")
+
+dirs_to_create <- c(
+  "00inputOutput/00input/00rawData/00enviro/00StaticLayers",
+  "00inputOutput/00input/00rawData/01tracking"
+)
+
+for (d in dirs_to_create) {
+  dir.create(here::here(d), recursive = TRUE, showWarnings = FALSE)
+}
+
+message("Raw data folders ready:")
+print(here::here(dirs_to_create))
+
+
+# ============================================================
 # 2. DEFINE SCRIPT ORDER
 # ============================================================
 # All paths are relative to the project root
