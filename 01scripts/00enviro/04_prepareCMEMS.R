@@ -3,52 +3,25 @@
 # 04_prepareCMEMS.R
 #
 # PURPOSE:
-# Prepare daily dynamic environmental layers from the CMEMS
-# files downloaded previously.
+# Read CMEMS NetCDF files, detect the real variables stored
+# inside each file, and export one daily GeoTIFF per variable.
 #
-# WHAT THIS SCRIPT DOES:
-# 1. Reads the raw CMEMS NetCDF files
-# 2. Extracts the daily layers contained in each file
-# 3. Crops them to the study area
-# 4. Resamples them to the same grid as the static template
-# 5. Masks them to marine cells only
-# 6. Saves one GeoTIFF per variable and day
-#
-# EXAMPLE OUTPUTS:
-# - sst_2015-02-15.tif
-# - chl_2015-02-15.tif
-#
-# WHY THIS STEP IS USEFUL:
-# Tracking data are points in space and time.
-# To match each position with environmental conditions,
-# we first need environmental rasters with:
-# - a consistent extent
-# - a consistent resolution
-# - one layer per day
-# ============================================================
-
-
-# ============================================================
-# 1. LOAD REQUIRED PACKAGES
+# IMPORTANT:
+# - Physical NetCDF files are multi-variable
+# - Variable names must be read from inside the NetCDF
+# - We do NOT infer variables from the file name
+# - We do NOT force CMEMS rasters to the bathymetry resolution
 # ============================================================
 
 suppressPackageStartupMessages({
   library(terra)
   library(here)
-  library(stringr)
 })
 
 message("Starting CMEMS daily layer preparation...")
 
-
 # ============================================================
-# 2. DEFINE INPUT AND OUTPUT PATHS
-# ============================================================
-# Input:
-# - raw CMEMS NetCDF files previously downloaded
-#
-# Output:
-# - processed daily rasters, one file per variable and date
+# PATHS
 # ============================================================
 
 raw_cmems_dir <- here(
@@ -75,29 +48,18 @@ if (!file.exists(template_file)) {
   stop("Template file not found: ", template_file)
 }
 
-
 # ============================================================
-# 3. READ TEMPLATE
-# ============================================================
-# We use the bathymetry raster as the spatial template.
-# This ensures that all dynamic layers have:
-# - the same extent
-# - the same resolution
-# - the same land/ocean mask
+# TEMPLATE
 # ============================================================
 
 template <- rast(template_file)
 
 message("Template loaded.")
-message("Template resolution: ", paste(res(template), collapse = " x "))
-message("Template extent: ", paste(round(ext(template)), collapse = ", "))
-
+message("Template extent: ", paste(round(ext(template), 3), collapse = ", "))
+message("Template resolution: ", paste(round(res(template), 5), collapse = " x "))
 
 # ============================================================
-# 4. FIND ALL CMEMS NETCDF FILES
-# ============================================================
-# We assume all downloaded CMEMS files are stored here as .nc
-# files.
+# FIND NETCDF FILES
 # ============================================================
 
 cmems_files <- list.files(
@@ -110,18 +72,10 @@ if (length(cmems_files) == 0) {
   stop("No NetCDF files found in: ", raw_cmems_dir)
 }
 
-message("Number of CMEMS files found: ", length(cmems_files))
-
+message("Number of NetCDF files found: ", length(cmems_files))
 
 # ============================================================
-# 5. LOOP THROUGH ALL CMEMS FILES
-# ============================================================
-# For each file:
-# - identify the variable
-# - read all layers
-# - loop through each daily layer
-# - crop / resample / mask
-# - save to disk
+# LOOP THROUGH FILES
 # ============================================================
 
 for (i in seq_along(cmems_files)) {
@@ -134,128 +88,168 @@ for (i in seq_along(cmems_files)) {
   message("File: ", bn)
   
   # ----------------------------------------------------------
-  # 5.1 Guess the variable name from the file name
-  # ----------------------------------------------------------
-  # This is a simple and transparent rule for the workshop.
-  # Adjust if your filenames follow a different convention.
-  #
-  # Examples:
-  # - file name containing "thetao" -> variable becomes "sst"
-  # - file name containing "chl"    -> variable becomes "chl"
+  # Read subdatasets / variables inside the NetCDF
   # ----------------------------------------------------------
   
-  var_out <- NA_character_
+  s <- try(sds(f), silent = TRUE)
   
-  if (str_detect(tolower(bn), "thetao")) var_out <- "sst"
-  if (str_detect(tolower(bn), "sst"))    var_out <- "sst"
-  if (str_detect(tolower(bn), "chl"))    var_out <- "chl"
-  
-  if (is.na(var_out)) {
-    message("  Could not identify variable from filename -> skipping file")
+  if (inherits(s, "try-error")) {
+    message("  Could not read NetCDF subdatasets -> skipping file")
     next
   }
   
-  message("  Identified variable: ", var_out)
+  var_names <- names(s)
   
-  # ----------------------------------------------------------
-  # 5.2 Read the NetCDF as a SpatRaster
-  # ----------------------------------------------------------
-  # A NetCDF can contain one or several layers.
-  # In this case, we assume that each layer corresponds to one day.
-  # ----------------------------------------------------------
-  
-  r <- rast(f)
-  
-  if (nlyr(r) == 0) {
-    message("  No layers found in file -> skipping")
+  if (length(var_names) == 0) {
+    message("  No variables found inside file -> skipping file")
     next
   }
   
-  message("  Number of layers in file: ", nlyr(r))
+  message("  Variables found: ", paste(var_names, collapse = ", "))
   
   # ----------------------------------------------------------
-  # 5.3 Try to recover layer dates from the time dimension
-  # ----------------------------------------------------------
-  # If terra can read the time dimension correctly, we use it.
-  # Otherwise, we will generate simple fallback names.
+  # Loop through variables inside this file
   # ----------------------------------------------------------
   
-  layer_time <- time(r)
-  
-  if (is.null(layer_time)) {
-    message("  No time dimension detected. Using fallback layer indices.")
-  } else {
-    message("  Time dimension detected.")
-  }
-  
-  # ----------------------------------------------------------
-  # 5.4 Loop through all layers in the current file
-  # ----------------------------------------------------------
-  
-  for (j in 1:nlyr(r)) {
+  for (v in seq_along(var_names)) {
     
-    message("    Processing layer ", j, " of ", nlyr(r))
+    var_out <- var_names[v]
     
-    # Extract one daily layer
-    r_day <- r[[j]]
+    message("  ------------------------------------")
+    message("  Processing variable: ", var_out)
     
-    # --------------------------------------------------------
-    # 5.5 Assign an output date
-    # --------------------------------------------------------
-    # If the time dimension exists, use it.
-    # Otherwise, create a fallback name using the layer index.
-    # --------------------------------------------------------
+    r <- try(rast(f, subds = var_names[v]), silent = TRUE)
     
-    if (!is.null(layer_time)) {
-      this_date <- as.Date(layer_time[j])
-      date_label <- format(this_date, "%Y-%m-%d")
-    } else {
-      date_label <- paste0("layer_", str_pad(j, width = 3, pad = "0"))
+    if (inherits(r, "try-error")) {
+      message("    Could not read variable ", var_out, " -> skipping")
+      next
+    }
+    
+    if (nlyr(r) == 0) {
+      message("    No layers found for variable ", var_out, " -> skipping")
+      next
     }
     
     # --------------------------------------------------------
-    # 5.6 Crop to template extent
+    # Fix longitude if dataset is in 0–360
     # --------------------------------------------------------
     
-    r_day <- crop(r_day, ext(template))
+    xr <- ext(r)
+    
+    if (xmin(xr) >= 0 && xmax(xr) > 180) {
+      message("    Rotating longitude from 0–360 to -180–180")
+      r <- try(rotate(r), silent = TRUE)
+      
+      if (inherits(r, "try-error")) {
+        message("    rotate() failed -> skipping variable")
+        next
+      }
+    }
+    
+    message("    Number of layers: ", nlyr(r))
+    message("    Raster extent: ", paste(round(ext(r), 3), collapse = ", "))
     
     # --------------------------------------------------------
-    # 5.7 Resample to template grid
-    # --------------------------------------------------------
-    # Bilinear interpolation is appropriate for continuous
-    # environmental variables such as temperature or chlorophyll.
+    # Time dimension
     # --------------------------------------------------------
     
-    r_day <- resample(r_day, template, method = "bilinear")
+    layer_time <- try(time(r), silent = TRUE)
+    
+    if (inherits(layer_time, "try-error") || is.null(layer_time)) {
+      message("    No time dimension detected. Using fallback layer indices.")
+      layer_time <- NULL
+    } else {
+      message("    Time dimension detected.")
+    }
     
     # --------------------------------------------------------
-    # 5.8 Mask to marine cells only
-    # --------------------------------------------------------
-    # The template bathymetry already has NA on land,
-    # so masking with it removes terrestrial cells.
-    # --------------------------------------------------------
-    
-    r_day <- mask(r_day, template)
-    
-    # Rename layer
-    names(r_day) <- var_out
-    
-    # --------------------------------------------------------
-    # 5.9 Save the processed daily raster
+    # Build marine mask on the CMEMS grid
+    # We adapt the bathymetry template to the CMEMS raster,
+    # not the other way around
     # --------------------------------------------------------
     
-    out_file <- file.path(
-      out_dynamic_dir,
-      paste0(var_out, "_", date_label, ".tif")
-    )
+    template_on_r <- try(resample(template, r[[1]], method = "near"), silent = TRUE)
     
-    writeRaster(
-      r_day,
-      filename = out_file,
-      overwrite = TRUE
-    )
+    if (inherits(template_on_r, "try-error") || is.null(template_on_r)) {
+      message("    Could not build marine mask -> skipping variable")
+      next
+    }
     
-    message("      Saved: ", basename(out_file))
+    # --------------------------------------------------------
+    # Loop through layers
+    # --------------------------------------------------------
+    
+    for (j in 1:nlyr(r)) {
+      
+      message("      Processing layer ", j, " of ", nlyr(r))
+      
+      r_day <- r[[j]]
+      
+      # ------------------------------------------------------
+      # Output date
+      # ------------------------------------------------------
+      
+      if (!is.null(layer_time)) {
+        this_date <- as.Date(layer_time[j])
+        date_label <- format(this_date, "%Y-%m-%d")
+      } else {
+        date_label <- paste0("layer_", sprintf("%03d", j))
+      }
+      
+      # ------------------------------------------------------
+      # Check if raster has values before masking
+      # ------------------------------------------------------
+      
+      vals_before <- try(values(r_day), silent = TRUE)
+      
+      if (inherits(vals_before, "try-error") || length(vals_before) == 0) {
+        message("        Could not read values -> skipping")
+        next
+      }
+      
+      if (all(is.na(vals_before))) {
+        message("        All values are already NA -> skipping")
+        next
+      }
+      
+      # ------------------------------------------------------
+      # Mask to marine cells only
+      # ------------------------------------------------------
+      
+      r_day <- try(mask(r_day, template_on_r), silent = TRUE)
+      
+      if (inherits(r_day, "try-error") || is.null(r_day)) {
+        message("        Mask failed -> skipping")
+        next
+      }
+      
+      vals_after <- try(values(r_day), silent = TRUE)
+      
+      if (inherits(vals_after, "try-error") || length(vals_after) == 0) {
+        message("        Could not read values after masking -> skipping")
+        next
+      }
+      
+      if (all(is.na(vals_after))) {
+        message("        All values are NA after masking -> skipping")
+        next
+      }
+      
+      names(r_day) <- var_out
+      
+      out_file <- file.path(
+        out_dynamic_dir,
+        paste0(var_out, "_", date_label, ".tif")
+      )
+      
+      writeRaster(
+        r_day,
+        filename = out_file,
+        overwrite = TRUE
+      )
+      
+      message("        Saved: ", basename(out_file))
+    }
   }
 }
 

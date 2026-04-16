@@ -44,7 +44,7 @@ message("Starting static layer preparation...")
 # ============================================================
 
 raw_static_dir <- here(
-  "00inputOutput", "00input", "00rawData", "03StaticLayers"
+  "00inputOutput", "00input", "00rawData", "00enviro", "00StaticLayers"
 )
 
 out_static_dir <- here(

@@ -5,33 +5,18 @@
 # PURPOSE:
 # Build one environmental stack per day for the present period.
 #
-# Each daily stack will contain:
-# - static variables (same every day)
-# - dynamic variables (change every day)
-# - selected gradients (temperature and salinity only)
+# EACH DAILY STACK WILL CONTAIN:
+# - static variables resampled to the PHY grid (0.083°)
+# - dynamic variables for that day
+# - gradients for:
+#   - thetao
+#   - so
 #
-# EXAMPLE:
-# For a given day, one stack may contain:
-# - bathymetry
-# - slope
-# - distance_to_coast
-# - sst
-# - sst_gradient
-# - so
-# - so_gradient
-# - chl
-#
-# WHY THIS STEP IS USEFUL:
-# Tracking data are matched to environmental conditions in space
-# and time. To do that efficiently, it is useful to build one
-# environmental raster stack per day.
-#
-# INPUT:
-# - static layers already prepared
-# - daily dynamic layers already prepared
-#
-# OUTPUT:
-# - one multilayer environmental stack per date
+# IMPORTANT:
+# - The target grid is the PHY CMEMS resolution (0.083°)
+# - Static layers are adapted to that grid
+# - BGC layers such as chl and nppv are also resampled to that grid
+# - Daily stacks are saved as .grd files
 # ============================================================
 
 
@@ -84,39 +69,21 @@ if (!dir.exists(dynamic_dir)) {
 
 message("Reading static layers...")
 
-# ------------------------------------------------------------
-# 3.1 Bathymetry
-# ------------------------------------------------------------
-
 bath_file <- file.path(static_dir, "bathymetry_wmed.tif")
-
 if (!file.exists(bath_file)) {
   stop("Bathymetry file not found: ", bath_file)
 }
-
 bathymetry <- rast(bath_file)
 names(bathymetry) <- "bathymetry"
-
 message("  Loaded bathymetry")
 
-# ------------------------------------------------------------
-# 3.2 Slope
-# ------------------------------------------------------------
-
 slope_file <- file.path(static_dir, "slope_wmed.tif")
-
 if (!file.exists(slope_file)) {
   stop("Slope file not found: ", slope_file)
 }
-
 slope <- rast(slope_file)
 names(slope) <- "slope"
-
 message("  Loaded slope")
-
-# ------------------------------------------------------------
-# 3.3 Distance to coast
-# ------------------------------------------------------------
 
 dist_file_1 <- file.path(static_dir, "distance_to_coast_wmed.tif")
 dist_file_2 <- file.path(static_dir, "dist_coast_wmed.tif")
@@ -131,7 +98,6 @@ if (file.exists(dist_file_1)) {
 
 distance_to_coast <- rast(dist_file)
 names(distance_to_coast) <- "distance_to_coast"
-
 message("  Loaded distance to coast")
 
 
@@ -164,17 +130,10 @@ dynamic_table <- data.frame(
 )
 
 dynamic_table$file_name <- basename(dynamic_table$file)
-
-# Remove ".tif"
 dynamic_table$file_stub <- str_remove(dynamic_table$file_name, "\\.tif$")
-
-# Extract date from file name
 dynamic_table$date <- str_extract(dynamic_table$file_stub, "\\d{4}-\\d{2}-\\d{2}$")
-
-# Extract variable name from file name
 dynamic_table$variable <- str_remove(dynamic_table$file_stub, "_\\d{4}-\\d{2}-\\d{2}$")
 
-# Keep only valid rows
 dynamic_table <- dynamic_table[!is.na(dynamic_table$date), ]
 
 if (nrow(dynamic_table) == 0) {
@@ -194,7 +153,24 @@ message("Number of unique dates found: ", length(all_dates))
 
 
 # ============================================================
-# 7. LOOP THROUGH DATES AND BUILD ONE STACK PER DAY
+# 7. VARIABLES EXPECTED IN DAILY STACKS
+# ============================================================
+
+# We use the real CMEMS variable names directly
+expected_vars <- c(
+  "mlotst",
+  "zos",
+  "thetao",
+  "so",
+  "uo",
+  "vo",
+  "chl",
+  "nppv"
+)
+
+
+# ============================================================
+# 8. LOOP THROUGH DATES AND BUILD ONE STACK PER DAY
 # ============================================================
 
 for (i in seq_along(all_dates)) {
@@ -203,10 +179,6 @@ for (i in seq_along(all_dates)) {
   
   message("====================================")
   message("Processing date ", i, " of ", length(all_dates), ": ", this_date)
-  
-  # ----------------------------------------------------------
-  # 7.1 Select all dynamic files for this date
-  # ----------------------------------------------------------
   
   daily_rows <- dynamic_table[dynamic_table$date == this_date, ]
   
@@ -218,113 +190,141 @@ for (i in seq_along(all_dates)) {
   message("  Number of dynamic variables for this day: ", nrow(daily_rows))
   
   # ----------------------------------------------------------
-  # 7.2 Start the stack with static variables
+  # 8.1 Find the PHY raster to use as target grid
+  # ----------------------------------------------------------
+  # We choose thetao as the reference variable because it belongs
+  # to the PHY product at 0.083° resolution.
   # ----------------------------------------------------------
   
+  phy_row <- daily_rows[daily_rows$variable == "thetao", ]
+  
+  if (nrow(phy_row) == 0) {
+    message("  No thetao raster found for this date -> skipping")
+    next
+  }
+  
+  target_grid <- rast(phy_row$file[1])
+  
+  if (nlyr(target_grid) > 1) {
+    target_grid <- target_grid[[1]]
+  }
+  
+  message("  Using thetao as target grid")
+  message("  Target resolution: ", paste(round(res(target_grid), 5), collapse = " x "))
+  message("  Target extent: ", paste(round(ext(target_grid), 3), collapse = ", "))
+  
+  # ----------------------------------------------------------
+  # 8.2 Resample static variables to target PHY grid
+  # ----------------------------------------------------------
+  # Static variables are adapted to the dynamic target grid,
+  # not the other way around.
+  # ----------------------------------------------------------
+  
+  bathymetry_target <- resample(bathymetry, target_grid, method = "bilinear")
+  slope_target <- resample(slope, target_grid, method = "bilinear")
+  distance_to_coast_target <- resample(distance_to_coast, target_grid, method = "bilinear")
+  
+  names(bathymetry_target) <- "bathymetry"
+  names(slope_target) <- "slope"
+  names(distance_to_coast_target) <- "distance_to_coast"
+  
   daily_stack <- c(
-    bathymetry,
-    slope,
-    distance_to_coast
+    bathymetry_target,
+    slope_target,
+    distance_to_coast_target
   )
   
   # ----------------------------------------------------------
-  # 7.3 Add dynamic variables one by one
+  # 8.3 Add dynamic variables one by one
   # ----------------------------------------------------------
   
-  for (j in seq_len(nrow(daily_rows))) {
+  for (v in seq_along(expected_vars)) {
     
-    dynamic_file <- daily_rows$file[j]
-    dynamic_var  <- daily_rows$variable[j]
+    dynamic_var <- expected_vars[v]
     
-    message("    Adding variable: ", dynamic_var)
+    message("  ------------------------------------")
+    message("  Looking for variable: ", dynamic_var)
+    
+    var_row <- daily_rows[daily_rows$variable == dynamic_var, ]
+    
+    if (nrow(var_row) == 0) {
+      message("    Variable not found for this date -> skipping")
+      next
+    }
+    
+    dynamic_file <- var_row$file[1]
+    
+    message("    Reading file: ", basename(dynamic_file))
     
     r <- rast(dynamic_file)
     
-    # If a file contains more than one layer, keep only the first
     if (nlyr(r) > 1) {
       r <- r[[1]]
     }
     
-    # Assign the real variable name
     names(r) <- dynamic_var
     
     # --------------------------------------------------------
-    # 7.3.1 Match geometry to the static template if needed
+    # 8.3.1 Resample dynamic variable to target PHY grid if needed
+    # --------------------------------------------------------
+    # This keeps all layers in the same grid.
+    # BGC variables such as chl and nppv will be upscaled from
+    # 0.25° to the PHY 0.083° grid.
     # --------------------------------------------------------
     
-    if (!compareGeom(r, bathymetry, stopOnError = FALSE)) {
-      message("      Geometry differs from template -> resampling")
-      r <- resample(r, bathymetry, method = "bilinear")
-      r <- mask(r, bathymetry)
+    if (!compareGeom(r, target_grid, stopOnError = FALSE)) {
+      message("    Geometry differs from target grid -> resampling")
+      r <- resample(r, target_grid, method = "bilinear")
     }
-    
-    # --------------------------------------------------------
-    # 7.3.2 Add original dynamic layer
-    # --------------------------------------------------------
     
     daily_stack <- c(daily_stack, r)
     
     # --------------------------------------------------------
-    # 7.3.3 Compute gradients ONLY for temperature and salinity
-    # --------------------------------------------------------
-    # We identify temperature-like and salinity-like variable names.
-    #
-    # Temperature examples:
-    # - temperature
-    # - temp
-    # - sst
-    # - thetao
-    #
-    # Salinity examples:
-    # - salinity
-    # - sal
-    # - so
+    # 8.3.2 Compute thetao gradient
     # --------------------------------------------------------
     
-    # ----- TEMPERATURE GRADIENT -----
-    if (dynamic_var %in% c("temperature", "temp", "sst", "thetao")) {
+    if (dynamic_var == "thetao") {
       
-      message("      Computing temperature gradient")
+      message("    Computing thetao gradient")
       
-      gradient_r <- terrain(
+      thetao_gradient <- terrain(
         r,
         v = "slope",
         unit = "radians",
         neighbors = 8
       )
       
-      gradient_r <- mask(gradient_r, bathymetry)
-      names(gradient_r) <- "temperature_gradient"
-      
-      daily_stack <- c(daily_stack, gradient_r)
+      names(thetao_gradient) <- "thetao_gradient"
+      daily_stack <- c(daily_stack, thetao_gradient)
     }
     
-    # ----- SALINITY GRADIENT -----
-    if (dynamic_var %in% c("salinity", "sal", "so")) {
+    # --------------------------------------------------------
+    # 8.3.3 Compute so gradient
+    # --------------------------------------------------------
+    
+    if (dynamic_var == "so") {
       
-      message("      Computing salinity gradient")
+      message("    Computing so gradient")
       
-      gradient_r <- terrain(
+      so_gradient <- terrain(
         r,
         v = "slope",
         unit = "radians",
         neighbors = 8
       )
       
-      gradient_r <- mask(gradient_r, bathymetry)
-      names(gradient_r) <- "salinity_gradient"
-      
-      daily_stack <- c(daily_stack, gradient_r)
+      names(so_gradient) <- "so_gradient"
+      daily_stack <- c(daily_stack, so_gradient)
     }
   }
   
   # ----------------------------------------------------------
-  # 7.4 Save the daily stack
+  # 8.4 Save the daily stack as .grd
   # ----------------------------------------------------------
   
   out_file <- file.path(
     out_dir,
-    paste0("present_stack_", this_date, ".tif")
+    paste0("present_stack_", this_date, ".grd")
   )
   
   writeRaster(
@@ -339,11 +339,12 @@ for (i in seq_along(all_dates)) {
 
 
 # ============================================================
-# 8. FINAL MESSAGE
+# 9. FINAL MESSAGE
 # ============================================================
 
 message("====================================")
 message("Present-day environmental stacks created successfully.")
-message("Temperature and salinity gradients were added when available.")
+message("All layers were aligned to the PHY grid (0.083°).")
+message("Gradients added for thetao and so.")
 message("Output directory: ", out_dir)
 message("====================================")

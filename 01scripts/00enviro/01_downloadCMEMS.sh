@@ -11,15 +11,15 @@ set -e
 # OPTIONAL: add Copernicus Marine executable to PATH
 # Uncomment and adapt if needed
 # ----------------------------
-# export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
+export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
 
 # ----------------------------
 # BASE DIRECTORY
 # ----------------------------
 BASE_DIR="/Users/jazelouled-cheikhbonan/Dropbox/2026_ECS_WorkshopSDM/EndToEndSDM_ECSWorkshop_2026"
 
-DATES_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/02Occurrences/tracking_dates.txt"
-BBOX_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/02Occurrences/bbox_env.txt"
+DATES_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/tracking_dates.txt"
+BBOX_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/bbox_env.txt"
 OUTDIR="${BASE_DIR}/00inputOutput/00input/00rawData/00CMEMS"
 
 mkdir -p "${OUTDIR}"
