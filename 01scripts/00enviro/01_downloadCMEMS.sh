@@ -25,7 +25,7 @@ echo "$BASE_DIR"
 
 DATES_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/tracking_dates.txt"
 BBOX_FILE="${BASE_DIR}/00inputOutput/00input/00rawData/01tracking/00auxiliaryFiles/bbox_env.txt"
-OUTDIR="${BASE_DIR}/00inputOutput/00input/00rawData/00CMEMS"
+OUTDIR="${BASE_DIR}/00inputOutput/00input/00rawData/01CMEMS"
 
 mkdir -p "${OUTDIR}"
 
