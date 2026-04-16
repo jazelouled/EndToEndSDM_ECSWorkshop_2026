@@ -18,8 +18,7 @@ export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
 # ----------------------------
 # BASE_DIR="/Users/jazelouled-cheikhbonan/Dropbox/2026_ECS_WorkshopSDM/EndToEndSDM_ECSWorkshop_2026"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-BASE_DIR="$( realpath "${SCRIPT_DIR}/../../.." )"
-
+BASE_DIR="$( realpath "${SCRIPT_DIR}/../../../.." )"
 echo "Using BASE_DIR:"
 echo "$BASE_DIR"
 
