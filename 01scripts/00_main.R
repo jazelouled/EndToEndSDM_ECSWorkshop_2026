@@ -55,6 +55,7 @@ print(here::here(dirs_to_create))
 # ============================================================
 
 scripts_to_run <- c(
+  "01scripts/00enviro/000_makeAuxiliaryFiles.R",
   "01scripts/00enviro/00_oceanMask.R",
   "01scripts/00enviro/01_downloadCMEMS.R",
   "01scripts/00enviro/02_prepareStaticLayers.R",
