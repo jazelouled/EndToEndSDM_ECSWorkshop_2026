@@ -11,7 +11,25 @@ set -e
 # OPTIONAL: add Copernicus Marine executable to PATH
 # Uncomment and adapt if needed
 # ----------------------------
-export PATH="/Users/jazelouled-cheikhbonan/anaconda3/bin:$PATH"
+# Try to use copernicusmarine from PATH
+if ! command -v copernicusmarine >/dev/null 2>&1; then
+  echo "copernicusmarine not found in PATH, trying common conda locations..."
+
+  for p in "$HOME/anaconda3/bin" "$HOME/miniconda3/bin" "$HOME/opt/anaconda3/bin" "$HOME/opt/miniconda3/bin"; do
+    if [ -f "$p/copernicusmarine" ]; then
+      export PATH="$p:$PATH"
+      echo "Found copernicusmarine in $p"
+      break
+    fi
+  done
+fi
+
+# Final check
+if ! command -v copernicusmarine >/dev/null 2>&1; then
+  echo "ERROR: copernicusmarine not found."
+  echo "Please install Copernicus Marine Toolbox or add it to your PATH."
+  exit 1
+fi
 
 # ----------------------------
 # BASE DIRECTORY
