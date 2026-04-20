@@ -30,11 +30,11 @@ cd EndToEndSDM_ECSWorkshop_2026
 
 Some large input files are not stored in the repository.
 
-#### Bathymetry (GEBCO)
+#### Bathymetry
 
 Download from:
 
-https://www.dropbox.com/scl/fo/qfywr8sc6p9bsmq1t3hwl/ADtf0NygMCTpLFFULwV4vKE?rlkey=j3q75cr9xdmuq0fowamip8k27&dl=0
+https://www.dropbox.com/scl/fi/e90xlk0ousn83qkpuwgoh/bathymetry_wmed.tif?rlkey=6dlp2qgayjvbg4hipn22xuo1n&dl=0
 
 Place the file inside:
 
@@ -44,7 +44,11 @@ Place the file inside:
 
 #### Tracking data
 
-Place tracking data inside:
+Download from:
+
+https://www.dropbox.com/scl/fi/lgr1izxp7ls9jn6waqxen/simulated_tracking_final.csv?rlkey=1hc94drsmj7e8zf04nm4jd6r6&dl=0
+
+Place the file inside:
 
 ```
 00inputOutput/00input/00rawData/01tracking/
@@ -58,7 +62,7 @@ Expected structure:
     └── 00rawData/
         ├── 00enviro/
         │   └── 00StaticLayers/
-        │       └── GEBCO_2014_2D.nc
+        │       └── bathymetry_wmed.tif
         │
         └── 01tracking/
             ├── simulated_tracking_final.csv
@@ -125,12 +129,11 @@ EndToEndSDM_ECSWorkshop_2026/
 │   │   └── 06_presAbs_grid_balancing_Balaenoptera_artificialis.R
 │   │
 │   └── 02habitatModel/
-│       ├── 41fitRF.R
-│       ├── 42fitGBM.R
-│       ├── 50predictPresent.R
+│       ├── 00_exploratoryDataAnalysis_Balaenoptera_artificialis
+│       ├── 01_fitRF_Balaenoptera_artificialis
+│       ├── 02_predictDaily_and_MeanSD_Balaenoptera_artificialis
 │       └── 99sessionInfo.R
 ```
-
 ---
 
 ## Workflow overview
@@ -167,9 +170,10 @@ Builds environmental predictors aligned in space and time.
 ### Habitat modelling
 
 ```
-41fitRF.R
-42fitGBM.R
-50predictPresent.R
+00_exploratoryDataAnalysis_Balaenoptera_artificialis.R
+01_fitRF_Balaenoptera_artificialis.R
+02_predictDaily_and_MeanSD_Balaenoptera_artificialis.R
+99sessionInfo.R
 ```
 
 Fits models and generates spatial predictions.
