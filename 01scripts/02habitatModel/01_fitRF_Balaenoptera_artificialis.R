@@ -1,6 +1,6 @@
 # =========================================================
 # SCRIPT NAME:
-# 00fitRF.R
+# 01_fitRF_Balaenoptera_artificialis.R
 #
 # DESCRIPTION:
 # End-to-end Random Forest workflow for the workshop project
