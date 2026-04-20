@@ -72,7 +72,7 @@ scripts_to_run <- c(
   "01scripts/01tracking/07_extractEnvironmentalData_Balaenoptera_artificialis.R",
   
   "01scripts/02habitatModel/00_exploratoryDataAnalysis_Balaenoptera_artificialis.R",
-  "01scripts/02habitatModel/00fitRF.R",
+  "01scripts/02habitatModel/01_fitRF_Balaenoptera_artificialis.R",
   "01scripts/02habitatModel/99sessionInfo.R"
 )
 
