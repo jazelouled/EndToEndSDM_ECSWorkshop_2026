@@ -221,8 +221,8 @@ ymin <- bbox_vals[3]
 ymax <- bbox_vals[4]
 
 # TREURE BUFFER DE 5º
-xlim_vals <- c(xmin + 5, xmax - 4)
-ylim_vals <- c(ymin + 5, ymax)
+xlim_vals <- c(xmin, xmax)
+ylim_vals <- c(ymin, ymax)
 
 rast_to_df <- function(r, value_name) {
   df <- as.data.frame(r, xy = TRUE, na.rm = FALSE)
