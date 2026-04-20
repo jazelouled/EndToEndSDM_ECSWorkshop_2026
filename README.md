@@ -54,6 +54,22 @@ Place the file inside:
 00inputOutput/00input/00rawData/01tracking/
 ```
 
+#### Environmental data
+
+Download from:
+
+https://www.dropbox.com/scl/fo/m6f6znub911rg6dixxnzm/AMOo3HL2sxs23Zm6g5YjNEA?rlkey=towzqx8s5o90amo2w2f3l9dev&dl=0
+
+Place the file inside:
+
+```
+00inputOutput/00input/00rawData/00enviro/01CMEMS
+```
+
+
+
+
+
 Expected structure:
 
 ```
